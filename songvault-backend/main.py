@@ -97,7 +97,7 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
     target = search_term_or_url if is_url else f"ytsearch1:{search_term_or_url}"
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio',
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'writethumbnail': True,
         'postprocessors': [
