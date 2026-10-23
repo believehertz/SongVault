@@ -59,6 +59,13 @@ def search_youtube_metadata(query: str) -> list:
         'extract_flat': True,
         'quiet': True,
         'no_warnings': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb'],
+                'skip': ['hls', 'dash']
+            }
+        },
     }
     target = f"ytsearch12:{query}"
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -96,6 +103,15 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
         ],
         'quiet': True,
         'no_warnings': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'source_address': '0.0.0.0',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb'],
+                'skip': ['hls', 'dash']
+            }
+        },
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
