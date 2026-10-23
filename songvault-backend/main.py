@@ -27,7 +27,7 @@ DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 app.mount("/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
 
-# Path to YouTube exported cookies file
+# Path to YouTube exported cookies file for authentication
 COOKIES_PATH = os.path.join(os.path.dirname(__file__), "cookies.txt")
 
 SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID", "")
@@ -97,7 +97,7 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
     target = search_term_or_url if is_url else f"ytsearch1:{search_term_or_url}"
 
     ydl_opts = {
-        'format': 'bestaudio',
+        'format': 'bestaudio/best',
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'writethumbnail': True,
         'postprocessors': [
