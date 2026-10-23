@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import shutil
 import tempfile
 from typing import List, Optional
 from fastapi import FastAPI, BackgroundTasks, HTTPException, File, UploadFile
@@ -134,6 +135,21 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
             "file_url": f"/downloads/{os.path.basename(mp3_filename)}",
             "status": "completed"
         }
+
+@app.get("/api/diagnostics")
+async def run_diagnostics():
+    """Checks system dependencies, ffmpeg, yt-dlp version, and cookie file status."""
+    ffmpeg_path = shutil.which("ffmpeg")
+    cookies_exists = os.path.exists(COOKIES_PATH)
+    
+    return {
+        "status": "success",
+        "ffmpeg_installed": ffmpeg_path is not None,
+        "ffmpeg_path": ffmpeg_path,
+        "yt_dlp_version": yt_dlp.version.__version__,
+        "cookies_file_exists": cookies_exists,
+        "cookies_file_path": COOKIES_PATH if cookies_exists else None
+    }
 
 @app.post("/api/search")
 async def search_tracks(req: SearchRequest):
