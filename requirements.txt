@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-yt-dlp
+yt-dlp[default]
 shazamio
 spotipy
-pydantic
-python-multipart
+requests
+aiofiles
+pydub
