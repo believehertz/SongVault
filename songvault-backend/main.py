@@ -27,6 +27,9 @@ DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 app.mount("/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
 
+# Path to YouTube exported cookies file
+COOKIES_PATH = os.path.join(os.path.dirname(__file__), "cookies.txt")
+
 SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID", "")
 SPOTIPY_CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET", "")
 
@@ -60,6 +63,7 @@ def search_youtube_metadata(query: str) -> list:
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'ios', 'mweb'],
@@ -106,6 +110,7 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'source_address': '0.0.0.0',
+        'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'ios', 'mweb'],
