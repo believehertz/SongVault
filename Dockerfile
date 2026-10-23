@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy requirements from the backend folder and install
-COPY songvault-backend/requirements.txt .
+# Copy requirements from root and install python packages
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend source code and cookies into /app
+# Copy backend files from songvault-backend into /app
 COPY songvault-backend/ .
 
 # Expose port and run FastAPI via uvicorn
