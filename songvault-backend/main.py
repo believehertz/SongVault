@@ -67,7 +67,7 @@ def search_youtube_metadata(query: str) -> list:
         'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'mweb'],
+                'player_client': ['android'],
                 'skip': ['hls', 'dash']
             }
         },
@@ -112,10 +112,10 @@ def download_audio_from_youtube(search_term_or_url: str) -> dict:
         'ignoreerrors': False,
         'source_address': '0.0.0.0',
         'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
+        # Restrict strictly to android client for stable audio stream extraction
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'mweb'],
-                'skip': ['hls', 'dash']
+                'player_client': ['android']
             }
         },
     }
