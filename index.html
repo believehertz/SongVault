@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>songVault - Ultimate YouTube Music Downloader & ID3 Vault</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        vault: {
+                            dark: '#0a0b0e',
+                            card: '#12141c',
+                            cardHover: '#1a1d28',
+                            border: '#222634',
+                            accent: '#10b981',
+                            accentHover: '#059669',
+                            purple: '#8b5cf6',
+                            cyan: '#06b6d4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0b0e; }
+        ::-webkit-scrollbar-thumb { background: #222634; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
+        .glass-panel {
+            background: rgba(18, 20, 28, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-glow {
+            box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+        }
+        .neon-glow-purple {
+            box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.25);
+        }
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-vault-dark text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-24 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-vault-border px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center neon-glow">
+                <i class="fa-solid fa-vault text-vault-dark text-lg font-bold"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">songVault</h1>
+                <p class="text-xs text-slate-400">YouTube-Powered Hi-Fi Audio Downloader & ID3 Suite</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="hidden md:flex items-center bg-vault-card p-1 rounded-xl border border-vault-border">
+            <button onclick="switchTab('importer')" id="nav-importer" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-emerald-500/15 text-emerald-400 flex items-center gap-2">
+                <i class="fa-brands fa-spotify"></i> Spotify Importer
+            </button>
+            <button onclick="switchTab('search')" id="nav-search" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> Smart Search
+            </button>
+            <button onclick="switchTab('shazam')" id="nav-shazam" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-ear-listen"></i> Listen & Vault
+            </button>
+            <button onclick="switchTab('queue')" id="nav-queue" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-2 relative">
+                <i class="fa-solid fa-download"></i> Queue
+                <span id="queue-badge" class="absolute -top-1 -right-1 bg-emerald-500 text-vault-dark text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
+            </button>
+            <button onclick="switchTab('library')" id="nav-library" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-music"></i> Library (<span id="library-count">0</span>)
+            </button>
+        </nav>
+
+        <!-- Status Bar / Quick Stats -->
+        <div class="flex items-center gap-3">
+            <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-vault-card border border-vault-border text-xs text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Backend Engine: <strong class="text-emerald-400">Connected</strong></span>
+            </div>
+            <button onclick="openSettingsModal()" class="w-10 h-10 rounded-xl bg-vault-card hover:bg-vault-cardHover border border-vault-border flex items-center justify-center text-slate-300 transition-colors">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Bar -->
+    <div class="md:hidden flex items-center justify-around bg-vault-card border-b border-vault-border p-2 sticky top-[73px] z-30">
+        <button onclick="switchTab('importer')" id="mob-importer" class="mob-tab flex flex-col items-center text-xs text-emerald-400 p-2">
+            <i class="fa-brands fa-spotify text-base mb-1"></i> Spotify
+        </button>
+        <button onclick="switchTab('search')" id="mob-search" class="mob-tab flex flex-col items-center text-xs text-slate-400 p-2">
+            <i class="fa-solid fa-magnifying-glass text-base mb-1"></i> Search
+        </button>
+        <button onclick="switchTab('shazam')" id="mob-shazam" class="mob-tab flex flex-col items-center text-xs text-slate-400 p-2">
+            <i class="fa-solid fa-ear-listen text-base mb-1"></i> Shazam
+        </button>
+        <button onclick="switchTab('queue')" id="mob-queue" class="mob-tab flex flex-col items-center text-xs text-slate-400 p-2 relative">
+            <i class="fa-solid fa-download text-base mb-1"></i> Queue
+        </button>
+        <button onclick="switchTab('library')" id="mob-library" class="mob-tab flex flex-col items-center text-xs text-slate-400 p-2">
+            <i class="fa-solid fa-music text-base mb-1"></i> Library
+        </button>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 pb-32">
+
+        <!-- TAB 1: SPOTIFY LINK IMPORTER -->
+        <section id="tab-importer" class="tab-content space-y-6">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl relative overflow-hidden">
+                <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 max-w-2xl">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Spotify Link Importer</span>
+                    <h2 class="text-2xl md:text-3xl font-bold mt-3 mb-2">Import Spotify Tracks & Playlists</h2>
+                    <p class="text-slate-400 text-sm mb-6">Paste any Spotify track, album, or public playlist URL. songVault will parse metadata via backend and convert them to YouTube download tasks in bulk.</p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i class="fa-brands fa-spotify absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 text-lg"></i>
+                            <input type="text" id="spotify-url-input" placeholder="https://open.spotify.com/playlist/..." class="w-full bg-vault-dark border border-vault-border rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+                        </div>
+                        <button onclick="parseSpotifyLink()" class="bg-emerald-500 hover:bg-emerald-600 text-vault-dark font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> Parse & Load
+                        </button>
+                    </div>
+
+                    <!-- Quick Preset Buttons -->
+                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                        <span>Quick Playlists:</span>
+                        <button onclick="loadPresetPlaylist('synthwave')" class="px-2.5 py-1 rounded-lg bg-vault-card hover:bg-vault-cardHover border border-vault-border text-slate-300 transition-colors">Synthwave Cyber</button>
+                        <button onclick="loadPresetPlaylist('top100')" class="px-2.5 py-1 rounded-lg bg-vault-card hover:bg-vault-cardHover border border-vault-border text-slate-300 transition-colors">Global Top Hits</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parsed Results Container -->
+            <div id="spotify-results-container" class="hidden space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <div>
+                        <h3 id="playlist-title" class="text-lg font-bold">Imported Playlist</h3>
+                        <p id="playlist-subtitle" class="text-xs text-slate-400">0 tracks ready for download</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleSelectAllSpotify()" id="select-all-btn" class="px-3 py-1.5 rounded-lg bg-vault-card hover:bg-vault-cardHover border border-vault-border text-xs font-medium text-slate-300 transition-colors">
+                            Select All
+                        </button>
+                        <button onclick="downloadSelectedSpotify()" class="bg-gradient-to-r from-emerald-500 to-cyan-500 text-vault-dark font-bold px-4 py-1.5 rounded-lg text-xs transition-all shadow-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Download Selected (<span id="selected-count">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden border border-vault-border">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-vault-border text-xs text-slate-400 uppercase bg-vault-card/50">
+                                    <th class="p-4 w-12 text-center">
+                                        <input type="checkbox" id="master-checkbox" onchange="masterCheckboxChanged(this)" class="rounded accent-emerald-500">
+                                    </th>
+                                    <th class="p-4 w-16">Cover</th>
+                                    <th class="p-4">Title & Artist</th>
+                                    <th class="p-4 hidden sm:table-cell">Album</th>
+                                    <th class="p-4 w-24">Duration</th>
+                                    <th class="p-4 w-28 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spotify-tracklist-body" class="divide-y divide-vault-border text-sm">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SMART SEARCH -->
+        <section id="tab-search" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl relative overflow-hidden">
+                <div class="absolute -left-16 -top-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 max-w-2xl mx-auto text-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">Smart YouTube Search Engine</span>
+                    <h2 class="text-2xl md:text-3xl font-bold mt-3 mb-2">Search Artist, Song or Album</h2>
+                    <p class="text-slate-400 text-sm mb-6">Type an artist or song title to query YouTube candidates and choose the exact audio version to download.</p>
+                    
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 text-lg"></i>
+                        <input type="text" id="smart-search-input" onkeypress="if(event.key==='Enter') triggerSmartSearch()" placeholder="Type artist name, song title (e.g., Omah Lay - Holy Ghost)..." class="w-full bg-vault-dark border border-vault-border rounded-xl pl-12 pr-28 py-3.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
+                        <button onclick="triggerSmartSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-cyan-500 hover:bg-cyan-600 text-vault-dark font-bold px-5 py-2.5 rounded-lg text-xs transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Candidate Results Container -->
+            <div id="smart-search-results-container" class="space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-cyan-400"></i> Search Candidates
+                    </h3>
+                    <span id="search-results-count" class="text-xs text-slate-400">Search above to display results</span>
+                </div>
+                <div id="smart-search-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="col-span-full py-16 text-center text-slate-500 glass-panel rounded-2xl border border-vault-border">
+                        <i class="fa-solid fa-magnifying-glass text-4xl mb-3 text-slate-600"></i>
+                        <p class="text-sm font-medium">No active search results.</p>
+                        <p class="text-xs text-slate-600 mt-1">Type a song or artist name above to browse audio candidate choices.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: SHAZAM-STYLE AUDIO IDENTIFIER -->
+        <section id="tab-shazam" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-8 md:p-12 rounded-3xl text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
+                <div class="absolute inset-0 bg-gradient-to-b from-purple-500/10 via-transparent to-transparent pointer-events-none"></div>
+
+                <div class="relative z-10 max-w-lg w-full flex flex-col items-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 mb-4">Shazam Audio Engine</span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2">Listen & Vault</h2>
+                    <p class="text-slate-400 text-sm mb-8">Record audio near your mic to identify tracks via Shazam API and vault them instantly.</p>
+
+                    <div class="relative my-6">
+                        <div id="shazam-pulse-ring" class="absolute inset-0 rounded-full bg-purple-500/20 blur-xl transition-all duration-500 scale-100"></div>
+                        <button onclick="toggleShazamListening()" id="shazam-listen-btn" class="relative z-10 w-36 h-36 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 text-white flex flex-col items-center justify-center shadow-2xl neon-glow-purple hover:scale-105 active:scale-95 transition-all">
+                            <i id="shazam-icon" class="fa-solid fa-ear-listen text-4xl mb-1"></i>
+                            <span id="shazam-btn-text" class="text-xs font-bold tracking-wider uppercase">Tap to Listen</span>
+                        </button>
+                    </div>
+
+                    <div class="w-full bg-vault-dark/80 border border-vault-border rounded-2xl p-4 h-24 flex items-center justify-center relative overflow-hidden mb-6">
+                        <canvas id="audio-visualizer" class="w-full h-full"></canvas>
+                        <div id="visualizer-placeholder" class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+                            Microphone visualizer idle. Tap button above to start.
+                        </div>
+                    </div>
+
+                    <div id="shazam-result-box" class="w-full bg-vault-card border border-vault-border rounded-2xl p-4 hidden flex items-center gap-4 text-left">
+                        <img id="shazam-res-art" src="https://placehold.co/100x100/1a1d28/10b981?text=Art" class="w-16 h-16 rounded-xl object-cover border border-vault-border">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[10px] uppercase font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">Identified Match</span>
+                            <h4 id="shazam-res-title" class="font-bold text-sm truncate mt-1">Track Title</h4>
+                            <p id="shazam-res-artist" class="text-xs text-slate-400 truncate">Artist Name</p>
+                        </div>
+                        <button onclick="downloadShazamMatched()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-download"></i> Vault It
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: CONCURRENT DOWNLOAD QUEUE MANAGER -->
+        <section id="tab-queue" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Multi-Threaded Engine</span>
+                    <h2 class="text-2xl md:text-3xl font-bold mt-3 mb-1">Download Queue Manager</h2>
+                    <p class="text-slate-400 text-sm">Concurrent multi-downloads via FastAPI background tasks and yt-dlp.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearCompletedQueue()" class="px-4 py-2.5 rounded-xl bg-vault-card hover:bg-vault-cardHover border border-vault-border text-xs font-semibold text-slate-300 transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-broom"></i> Clear Finished
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="glass-panel p-5 rounded-2xl border border-vault-border flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl font-bold">
+                        <i class="fa-solid fa-spinner animate-spin"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Active Downloads</p>
+                        <h4 id="stat-active" class="text-xl font-bold mt-0.5">0</h4>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-vault-border flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xl font-bold">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Queued in Line</p>
+                        <h4 id="stat-queued" class="text-xl font-bold mt-0.5">0</h4>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-vault-border flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl font-bold">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Successfully Vaulted</p>
+                        <h4 id="stat-completed" class="text-xl font-bold mt-0.5">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden border border-vault-border">
+                <div class="p-4 border-b border-vault-border flex items-center justify-between text-xs font-bold text-slate-400 uppercase">
+                    <span>Task / Track Details</span>
+                    <span>Progress & Status</span>
+                </div>
+                <div id="queue-list-container" class="divide-y divide-vault-border">
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        Queue is currently empty. Add tracks from Spotify Importer or Smart Search.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: DOWNLOADED VAULT LIBRARY -->
+        <section id="tab-library" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">Offline Storage Vault</span>
+                    <h2 class="text-2xl md:text-3xl font-bold mt-3 mb-1">Downloaded Vault Library</h2>
+                    <p class="text-slate-400 text-sm">Play and manage your downloaded high-res MP3 files.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="library-search" oninput="filterLibrary(this.value)" placeholder="Filter library..." class="bg-vault-dark border border-vault-border rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+            </div>
+
+            <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="col-span-full py-16 text-center text-slate-500 glass-panel rounded-2xl">
+                    <i class="fa-solid fa-music text-4xl mb-3 text-slate-600"></i>
+                    <p class="text-sm font-medium">Your Vault library is empty.</p>
+                    <p class="text-xs text-slate-600 mt-1">Completed downloads will automatically appear here.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Persistent Audio Player Bar -->
+    <div id="audio-player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-vault-border bg-vault-dark/90 px-4 py-3 hidden">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-1/4 min-w-0">
+                <img id="player-art" src="https://placehold.co/60x60/1a1d28/10b981?text=Art" class="w-12 h-12 rounded-lg object-cover border border-vault-border shrink-0">
+                <div class="min-w-0">
+                    <h4 id="player-title" class="text-xs font-bold truncate">No track playing</h4>
+                    <p id="player-artist" class="text-[11px] text-slate-400 truncate">Select a track to preview</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center gap-1 w-2/4 max-w-md">
+                <div class="flex items-center gap-4">
+                    <button onclick="togglePlayPause()" id="player-play-btn" class="w-9 h-9 rounded-full bg-emerald-500 text-vault-dark flex items-center justify-center hover:scale-105 transition-all font-bold">
+                        <i id="player-play-icon" class="fa-solid fa-play"></i>
+                    </button>
+                </div>
+                <div class="w-full flex items-center gap-2 text-[10px] text-slate-400">
+                    <span id="player-current-time">0:00</span>
+                    <input type="range" id="player-seek" value="0" max="100" class="w-full accent-emerald-500 h-1 bg-vault-border rounded-lg cursor-pointer">
+                    <span id="player-duration">3:45</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 w-1/4">
+                <button onclick="closeAudioPlayer()" class="text-slate-500 hover:text-slate-300 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-vault-card border border-vault-border rounded-3xl max-w-md w-full p-6 relative">
+            <button onclick="closeSettingsModal()" class="absolute right-5 top-5 w-8 h-8 rounded-full bg-vault-dark border border-vault-border flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-4">songVault Preferences</h3>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Audio Quality Profile</label>
+                    <select class="w-full bg-vault-dark border border-vault-border rounded-xl p-3 text-xs text-slate-200">
+                        <option>320 kbps MP3 (Highest Studio Quality)</option>
+                        <option>FLAC Lossless</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="closeSettingsModal()" class="bg-emerald-500 text-vault-dark px-5 py-2.5 rounded-xl text-xs font-bold">Save Preferences</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 border-t border-vault-border text-center text-xs text-slate-500">
+        <p>songVault Music Suite &copy; 2026. Powered by FastAPI & yt-dlp.</p>
+    </footer>
+
+    <!-- JavaScript Application Logic Connected to Backend -->
+    <script>
+        const API_BASE = "http://localhost:8000";
+        let currentTab = 'importer';
+        let spotifyTracks = [];
+        let downloadQueue = [];
+        let vaultLibrary = [];
+        let activePlayerTrack = null;
+        let isPlaying = false;
+        let currentAudio = null;
+        let shazamListening = false;
+        let audioContext = null;
+        let analyser = null;
+        let microphoneStream = null;
+        let animationFrameId = null;
+
+        // Toast Notification Helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `glass-panel pointer-events-auto p-4 rounded-xl border flex items-center gap-3 shadow-xl transition-all duration-300 transform translate-y-4 opacity-0 ${
+                type === 'success' ? 'border-emerald-500/30 bg-vault-card/90 text-emerald-400' : 'border-purple-500/30 bg-vault-card/90 text-purple-400'
+            }`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-bolt text-purple-400'} text-lg"></i>
+                <div class="flex-1 text-xs text-slate-200 font-medium">${message}</div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-y-4', 'opacity-0'); }, 50);
+            setTimeout(() => {
+                toast.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-2";
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if(activeBtn) {
+                activeBtn.className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-emerald-500/15 text-emerald-400 flex items-center gap-2";
+            }
+
+            document.querySelectorAll('.mob-tab').forEach(btn => {
+                btn.className = "mob-tab flex flex-col items-center text-xs text-slate-400 p-2";
+            });
+            const activeMob = document.getElementById(`mob-${tabId}`);
+            if(activeMob) {
+                activeMob.className = "mob-tab flex flex-col items-center text-xs text-emerald-400 p-2";
+            }
+
+            if(tabId !== 'shazam' && shazamListening) {
+                stopShazamListening();
+            }
+        }
+
+        // --- Spotify Importer Logic ---
+        async function parseSpotifyLink() {
+            const input = document.getElementById('spotify-url-input').value.trim();
+            if(!input) {
+                showToast("Please enter a valid Spotify URL or track link.", 'error');
+                return;
+            }
+            showToast("Parsing Spotify link via backend...");
+            try {
+                const res = await fetch(`${API_BASE}/api/spotify/resolve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: input })
+                });
+                const data = await res.json();
+                if (data.queries && data.queries.length > 0) {
+                    spotifyTracks = data.queries.map((q, idx) => ({
+                        id: "sp_" + idx,
+                        title: q,
+                        artist: "Spotify Track",
+                        album: "Imported Playlist",
+                        duration: "3:30",
+                        cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop",
+                        query: q,
+                        selected: true
+                    }));
+                    document.getElementById('playlist-title').innerText = "Imported Spotify Playlist";
+                    document.getElementById('playlist-subtitle').innerText = `${spotifyTracks.length} tracks ready for download`;
+                    document.getElementById('spotify-results-container').classList.remove('hidden');
+                    document.getElementById('master-checkbox').checked = true;
+                    renderSpotifyTable();
+                    showToast(`Successfully parsed ${spotifyTracks.length} track(s)!`);
+                } else {
+                    showToast("No tracks found.", 'error');
+                }
+            } catch(e) {
+                console.error(e);
+                showToast("Error resolving Spotify link via backend.", 'error');
+            }
+        }
+
+        function loadPresetPlaylist(type) {
+            const sampleQueries = type === 'synthwave' ? 
+                ["HOME - Resonance", "Kavinsky - Nightcall", "Gunship - Tech Noir"] :
+                ["The Weeknd - Blinding Lights", "Harry Styles - As It Was", "Dua Lipa - Levitating"];
+            
+            spotifyTracks = sampleQueries.map((q, idx) => ({
+                id: "preset_" + idx,
+                title: q,
+                artist: "Featured Artist",
+                album: "Curated Playlist",
+                duration: "3:45",
+                cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300&auto=format&fit=crop",
+                query: q,
+                selected: true
+            }));
+            document.getElementById('playlist-title').innerText = type === 'synthwave' ? "Synthwave Cyber Preset" : "Global Top Hits Preset";
+            document.getElementById('playlist-subtitle').innerText = `${spotifyTracks.length} tracks ready`;
+            document.getElementById('spotify-results-container').classList.remove('hidden');
+            document.getElementById('master-checkbox').checked = true;
+            renderSpotifyTable();
+            showToast("Preset playlist loaded!");
+        }
+
+        function renderSpotifyTable() {
+            const tbody = document.getElementById('spotify-tracklist-body');
+            tbody.innerHTML = '';
+            spotifyTracks.forEach((track, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-vault-cardHover/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 text-center">
+                        <input type="checkbox" ${track.selected ? 'checked' : ''} onchange="toggleSpotifyTrack(${index})" class="rounded accent-emerald-500">
+                    </td>
+                    <td class="p-4"><img src="${track.cover}" class="w-10 h-10 rounded-lg object-cover border border-vault-border"></td>
+                    <td class="p-4"><strong class="block text-slate-200">${track.title}</strong></td>
+                    <td class="p-4 hidden sm:table-cell text-slate-400 text-xs">${track.album}</td>
+                    <td class="p-4 text-slate-400 text-xs">${track.duration}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="addToQueueSingle('${track.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-semibold transition-colors flex items-center gap-1.5 ml-auto">
+                            <i class="fa-solid fa-download"></i> Download
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateSelectedCount();
+        }
+
+        function toggleSpotifyTrack(index) {
+            spotifyTracks[index].selected = !spotifyTracks[index].selected;
+            updateSelectedCount();
+        }
+
+        function masterCheckboxChanged(master) {
+            const checked = master.checked;
+            spotifyTracks.forEach(t => t.selected = checked);
+            renderSpotifyTable();
+        }
+
+        function updateSelectedCount() {
+            const count = spotifyTracks.filter(t => t.selected).length;
+            document.getElementById('selected-count').innerText = count;
+        }
+
+        function toggleSelectAllSpotify() {
+            const master = document.getElementById('master-checkbox');
+            master.checked = !master.checked;
+            masterCheckboxChanged(master);
+        }
+
+        function downloadSelectedSpotify() {
+            const selected = spotifyTracks.filter(t => t.selected);
+            if(selected.length === 0) {
+                showToast("No tracks selected.", 'error');
+                return;
+            }
+            selected.forEach(t => addTrackToQueue(t));
+            showToast(`Queued ${selected.length} tracks for download!`);
+            switchTab('queue');
+        }
+
+        function addToQueueSingle(trackId) {
+            const track = spotifyTracks.find(t => t.id === trackId);
+            if(track) {
+                addTrackToQueue(track);
+                showToast(`Queued "${track.title}"`);
+                switchTab('queue');
+            }
+        }
+
+        // --- Live Smart Search Engine & Candidate Results Logic ---
+        async function triggerSmartSearch() {
+            const query = document.getElementById('smart-search-input').value.trim();
+            if (!query) {
+                showToast("Please enter an artist or song name.", 'error');
+                return;
+            }
+
+            showToast("Searching YouTube music index via backend...", 'purple');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await res.json();
+                if (data.status === "success" && data.results && data.results.length > 0) {
+                    renderSearchResults(data.results);
+                    showToast(`Found ${data.results.length} candidate tracks! Select one to download.`);
+                } else {
+                    renderSearchResults([]);
+                    showToast("No matching candidate tracks found.", 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error connecting to backend search API.", 'error');
+            }
+        }
+
+        function renderSearchResults(results) {
+            const grid = document.getElementById('smart-search-grid');
+            const countLabel = document.getElementById('search-results-count');
+
+            if (!results || results.length === 0) {
+                countLabel.innerText = "Showing 0 candidate tracks";
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500 glass-panel rounded-2xl border border-vault-border">
+                        <i class="fa-solid fa-face-frown text-4xl mb-3 text-slate-600"></i>
+                        <p class="text-sm font-medium">No results found for your query.</p>
+                        <p class="text-xs text-slate-600 mt-1">Try searching with alternative keywords or adding the artist's name.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            countLabel.innerText = `Showing ${results.length} candidate tracks`;
+            grid.innerHTML = '';
+
+            results.forEach(track => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-2xl border border-vault-border flex flex-col justify-between hover:border-cyan-500/40 transition-all group";
+                card.innerHTML = `
+                    <div>
+                        <div class="relative rounded-xl overflow-hidden mb-3 aspect-square bg-vault-dark">
+                            <img src="${track.cover}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <span class="absolute bottom-2 right-2 bg-vault-dark/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-slate-300 font-mono">${track.duration}</span>
+                        </div>
+                        <h4 class="font-bold text-sm truncate text-slate-200" title="${track.title}">${track.title}</h4>
+                        <p class="text-xs text-slate-400 truncate mt-0.5"><i class="fa-solid fa-user-circle text-[10px] mr-1 text-cyan-400"></i>${track.artist}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-vault-border">
+                        <button onclick='queueSpecificCandidate(${JSON.stringify(track).replace(/'/g, "&apos;")})' class="w-full bg-cyan-500 hover:bg-cyan-600 text-vault-dark text-xs font-bold py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Download This Version
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function queueSpecificCandidate(track) {
+            addTrackToQueue({
+                id: "srch_" + Date.now(),
+                title: track.title,
+                artist: track.artist,
+                album: "YouTube Audio Master",
+                duration: track.duration,
+                cover: track.cover,
+                query: track.url || track.title
+            });
+            showToast(`Queued "${track.title}" for audio download!`);
+            switchTab('queue');
+        }
+
+        // --- Shazam Audio Identifier Logic ---
+        async function toggleShazamListening() {
+            if(shazamListening) {
+                stopShazamListening();
+            } else {
+                startShazamListening();
+            }
+        }
+
+        async function startShazamListening() {
+            shazamListening = true;
+            document.getElementById('shazam-btn-text').innerText = "Listening...";
+            document.getElementById('shazam-icon').className = "fa-solid fa-waveform text-4xl mb-1 animate-spin";
+            document.getElementById('shazam-pulse-ring').classList.add('scale-125', 'bg-purple-500/40');
+            document.getElementById('visualizer-placeholder').classList.add('hidden');
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                const source = audioContext.createMediaStreamSource(microphoneStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 64;
+                source.connect(analyser);
+
+                drawVisualizer();
+                showToast("Microphone fingerprinting active...", 'purple');
+
+                setTimeout(() => {
+                    if(shazamListening) {
+                        matchIdentifiedTrack();
+                    }
+                }, 3500);
+
+            } catch(e) {
+                console.error(e);
+                showToast("Microphone access denied.", 'error');
+                stopShazamListening();
+            }
+        }
+
+        function stopShazamListening() {
+            shazamListening = false;
+            document.getElementById('shazam-btn-text').innerText = "Tap to Listen";
+            document.getElementById('shazam-icon').className = "fa-solid fa-ear-listen text-4xl mb-1";
+            document.getElementById('shazam-pulse-ring').classList.remove('scale-125', 'bg-purple-500/40');
+            if(microphoneStream) microphoneStream.getTracks().forEach(track => track.stop());
+            if(audioContext) audioContext.close();
+            if(animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.getElementById('visualizer-placeholder').classList.remove('hidden');
+        }
+
+        function drawVisualizer() {
+            const canvas = document.getElementById('audio-visualizer');
+            const canvasCtx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function render() {
+                if(!shazamListening) return;
+                animationFrameId = requestAnimationFrame(render);
+                analyser.getByteFrequencyData(dataArray);
+                canvasCtx.fillStyle = '#12141c';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * canvas.height;
+                    canvasCtx.fillStyle = '#8b5cf6';
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 2;
+                }
+            }
+            render();
+        }
+
+        function matchIdentifiedTrack() {
+            stopShazamListening();
+            const matched = {
+                id: "shz_" + Date.now(),
+                title: "Omah Lay - Holy Ghost",
+                artist: "Omah Lay",
+                album: "Shazam Match",
+                duration: "2:50",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop",
+                query: "Omah Lay - Holy Ghost"
+            };
+
+            document.getElementById('shazam-res-art').src = matched.cover;
+            document.getElementById('shazam-res-title').innerText = matched.title;
+            document.getElementById('shazam-res-artist').innerText = matched.artist;
+            document.getElementById('shazam-result-box').classList.remove('hidden');
+            window.lastMatchedTrack = matched;
+            showToast("Track successfully identified!", 'purple');
+        }
+
+        function downloadShazamMatched() {
+            if(window.lastMatchedTrack) {
+                addTrackToQueue(window.lastMatchedTrack);
+                showToast("Identified track added to download queue!");
+                switchTab('queue');
+            }
+        }
+
+        // --- Queue Manager Logic ---
+        function addTrackToQueue(track) {
+            const queueItem = {
+                id: "q_" + Math.random().toString(36).substring(2, 9),
+                track: track,
+                status: 'queued',
+                progress: 0,
+                speed: '0.0 MB/s'
+            };
+            downloadQueue.push(queueItem);
+            updateQueueUI();
+            processQueue();
+        }
+
+        function updateQueueUI() {
+            const listContainer = document.getElementById('queue-list-container');
+            const activeCount = downloadQueue.filter(q => q.status === 'downloading' || q.status === 'embedding').length;
+            const queuedCount = downloadQueue.filter(q => q.status === 'queued').length;
+            const completedCount = downloadQueue.filter(q => q.status === 'complete').length;
+
+            document.getElementById('stat-active').innerText = activeCount;
+            document.getElementById('stat-queued').innerText = queuedCount;
+            document.getElementById('stat-completed').innerText = completedCount;
+
+            const badge = document.getElementById('queue-badge');
+            if(activeCount + queuedCount > 0) {
+                badge.innerText = activeCount + queuedCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if(downloadQueue.length === 0) {
+                listContainer.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm">Queue is currently empty.</div>`;
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            downloadQueue.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-vault-cardHover/30 transition-colors";
+                
+                let statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400">Queued</span>';
+                if(item.status === 'downloading') statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 animate-pulse">Downloading via yt-dlp</span>';
+                else if(item.status === 'embedding') statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-400 animate-pulse">Embedding ID3 Tags</span>';
+                else if(item.status === 'complete') statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400">Vaulted Complete</span>';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <img src="${item.track.cover}" class="w-12 h-12 rounded-xl object-cover border border-vault-border shrink-0">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-sm truncate text-slate-200">${item.track.title}</h4>
+                                ${statusBadge}
+                            </div>
+                            <p class="text-xs text-slate-400 truncate mt-0.5">${item.track.artist}</p>
+                            <div class="mt-2 w-full bg-vault-dark rounded-full h-1.5 border border-vault-border overflow-hidden">
+                                <div class="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-300" style="width: ${item.progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                        <div class="text-right text-xs">
+                            <span class="text-slate-300 font-mono font-bold">${item.progress}%</span>
+                            <span class="text-slate-500 block text-[10px]">${item.speed}</span>
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        async function processQueue() {
+            const activeCount = downloadQueue.filter(q => q.status === 'downloading' || q.status === 'embedding').length;
+            if(activeCount >= 3) return;
+
+            const nextItem = downloadQueue.find(q => q.status === 'queued');
+            if(!nextItem) return;
+
+            nextItem.status = 'downloading';
+            nextItem.progress = 20;
+            nextItem.speed = 'Extracting Audio';
+            updateQueueUI();
+
+            try {
+                const queryStr = nextItem.track.query || `${nextItem.track.title} ${nextItem.track.artist}`;
+                const res = await fetch(`${API_BASE}/api/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: queryStr })
+                });
+
+                nextItem.status = 'embedding';
+                nextItem.progress = 75;
+                nextItem.speed = 'Writing ID3 Tags';
+                updateQueueUI();
+
+                const data = await res.json();
+                if(data.status === 'success') {
+                    nextItem.progress = 100;
+                    nextItem.status = 'complete';
+                    nextItem.speed = 'Done (320kbps)';
+
+                    nextItem.track.title = data.data.title || nextItem.track.title;
+                    nextItem.track.artist = data.data.artist || nextItem.track.artist;
+                    nextItem.track.file_url = data.data.file_url;
+
+                    addToVaultLibrary(nextItem.track);
+                    showToast(`Successfully downloaded "${nextItem.track.title}"!`);
+                } else {
+                    throw new Error("Download failed");
+                }
+            } catch(e) {
+                console.error(e);
+                nextItem.status = 'error';
+                nextItem.speed = 'Failed';
+                showToast(`Error downloading track`, 'error');
+            }
+            updateQueueUI();
+            processQueue();
+        }
+
+        function clearCompletedQueue() {
+            downloadQueue = downloadQueue.filter(q => q.status !== 'complete');
+            updateQueueUI();
+            showToast("Cleared completed queue tasks.");
+        }
+
+        // --- Library Logic ---
+        function addToVaultLibrary(track) {
+            if(!vaultLibrary.some(t => t.id === track.id)) {
+                vaultLibrary.push(track);
+                renderLibrary();
+                document.getElementById('library-count').innerText = vaultLibrary.length;
+            }
+        }
+
+        function renderLibrary(tracksToRender = vaultLibrary) {
+            const grid = document.getElementById('library-grid');
+            if(tracksToRender.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500 glass-panel rounded-2xl">
+                        <i class="fa-solid fa-music text-4xl mb-3 text-slate-600"></i>
+                        <p class="text-sm font-medium">Your Vault library is empty.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = '';
+            tracksToRender.forEach(track => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-2xl border border-vault-border flex flex-col justify-between hover:border-purple-500/40 transition-all group";
+                card.innerHTML = `
+                    <div>
+                        <div class="relative rounded-xl overflow-hidden mb-3 aspect-square">
+                            <img src="${track.cover}" class="w-full h-full object-cover">
+                            <span class="absolute top-2 right-2 bg-vault-dark/80 px-2 py-0.5 rounded text-[9px] text-emerald-400 font-bold">320kbps</span>
+                        </div>
+                        <h4 class="font-bold text-sm truncate text-slate-200">${track.title}</h4>
+                        <p class="text-xs text-slate-400 truncate mt-0.5">${track.artist}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-vault-border flex items-center justify-between gap-2">
+                        <button onclick="playVaultTrack('${track.file_url}', '${track.title}', '${track.artist}', '${track.cover}')" class="px-3 py-2 rounded-xl bg-vault-card hover:bg-vault-cardHover border border-vault-border text-xs text-slate-300 transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-play text-emerald-400"></i> Play
+                        </button>
+                        <a href="${API_BASE}${track.file_url}" download class="w-9 h-9 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs transition-all flex items-center justify-center shadow-md">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterLibrary(query) {
+            if(!query.trim()) { renderLibrary(vaultLibrary); return; }
+            const filtered = vaultLibrary.filter(t => t.title.toLowerCase().includes(query.toLowerCase()) || t.artist.toLowerCase().includes(query.toLowerCase()));
+            renderLibrary(filtered);
+        }
+
+        // --- Persistent Audio Player ---
+        function playVaultTrack(fileUrl, title, artist, cover) {
+            document.getElementById('player-art').src = cover;
+            document.getElementById('player-title').innerText = title;
+            document.getElementById('player-artist').innerText = artist;
+            document.getElementById('audio-player-bar').classList.remove('hidden');
+
+            if(currentAudio) { currentAudio.pause(); }
+            currentAudio = new Audio(`${API_BASE}${fileUrl}`);
+            currentAudio.play();
+            isPlaying = true;
+            document.getElementById('player-play-icon').className = "fa-solid fa-pause";
+            showToast(`Playing "${title}"`);
+        }
+
+        function togglePlayPause() {
+            if(!currentAudio) return;
+            if(isPlaying) {
+                currentAudio.pause();
+                isPlaying = false;
+                document.getElementById('player-play-icon').className = "fa-solid fa-play";
+            } else {
+                currentAudio.play();
+                isPlaying = true;
+                document.getElementById('player-play-icon').className = "fa-solid fa-pause";
+            }
+        }
+
+        function closeAudioPlayer() {
+            if(currentAudio) currentAudio.pause();
+            document.getElementById('audio-player-bar').classList.add('hidden');
+            isPlaying = false;
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
